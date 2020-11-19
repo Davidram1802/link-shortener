@@ -22,7 +22,6 @@ urls=[
 async def test(param1,param2):
     return {"parametro1":param1,"parametro2":param2}'''
 
-
 @app.get("/")
 async def get_all():
     return urls
