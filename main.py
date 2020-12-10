@@ -10,7 +10,8 @@ from datetime import datetime, timezone,timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-import redis
+from model import db
+#import redis
 
 SECRET_KEY ='9406c796ef64db9dd08dfb7a681792b7435104293118360b09e6c8d09dd8186a'
 ALGORITHM = "HS256"
@@ -25,7 +26,9 @@ fake_users_db = {
         "disabled": False,
     }
 }
-
+class Link(BaseModel):
+    key: str
+    link: str
 
 class Token(BaseModel):
     access_token: str
@@ -48,7 +51,9 @@ class UserInDB(User):
 
 app = FastAPI()
 
-re = redis.Redis(host='127.0.0.1',port= 6379 ) 
+#re = redis.Redis(host='127.0.0.1',port= 6379 ) 
+
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -73,7 +78,7 @@ def authenticate_user(fake_db, username: str, password: str):
     user = get_user(fake_db, username)
     if not user:
         return False
-    if not verify_password(password, user['hashed_password']):
+    if not verify_password(password, user.hashed_password):
         return False
     return user
 
@@ -124,7 +129,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user['username']}, expires_delta=access_token_expires
+        data={"sub": user.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -139,12 +144,10 @@ async def read_items(token: str = Depends(oauth2_scheme)):
 
 
 
-
-
 @app.get("/")
-async def get_all():
-    keys_list=re.keys()
-    keys_values=[{'key':key,'value':re.get(key)} for key in keys_list]
+async def get_all(token: str = Depends(oauth2_scheme)):
+    #keys_list=re.keys() usar mongo
+    #keys_values=[{'key':key,'value':re.get(key)} for key in keys_list]
     return keys_values
 
 
