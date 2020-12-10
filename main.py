@@ -10,7 +10,8 @@ from datetime import datetime, timezone,timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from model import db
+from model import db, get_dict_links
+
 #import redis
 
 SECRET_KEY ='9406c796ef64db9dd08dfb7a681792b7435104293118360b09e6c8d09dd8186a'
@@ -52,8 +53,9 @@ class UserInDB(User):
 app = FastAPI()
 
 #re = redis.Redis(host='127.0.0.1',port= 6379 ) 
+links = db.enlaces # colecion en mongodb que tiene los key-values de los links
 
-
+links_dict = get_dict_links(db) # diccionario con key-->url hasheada value-->la url
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -146,18 +148,15 @@ async def read_items(token: str = Depends(oauth2_scheme)):
 
 @app.get("/")
 async def get_all(token: str = Depends(oauth2_scheme)):
-    #keys_list=re.keys() usar mongo
-    #keys_values=[{'key':key,'value':re.get(key)} for key in keys_list]
-    return keys_values
+    return links_dict
 
 
 @app.get('/{url_sorted}')
 async def redirect(url_shorted:str):
-    url_to_redirect=re.get(url_shorted)
-    
+    url_to_redirect = links_dict[url_shorted]
     if url_to_redirect is not None:
-        # return {'url_to_redirect':url_to_redirect}
-        return  RedirectResponse(url= url_to_redirect.decode('utf-8') ,status_code=302)
+        return {'url_to_redirect':url_to_redirect}
+        #return  RedirectResponse(url= url_to_redirect)
     else:
         raise HTTPException(status_code=404,detail='The link does not exist, could not redirect.')
 
@@ -166,8 +165,8 @@ async def redirect(url_shorted:str):
 async def func(url:str):
     timestamp = datetime.now().replace(tzinfo=timezone.utc).timestamp()
 
-    new_url={"url":' http://' + url, "url_shorted":create_short_link(url,timestamp)} # añadir http://
+    new_url={create_short_link(url,timestamp) : ' http://' + url } # añadir http://
 
-    re.set(new_url['url_shorted'], new_url['url'])
+    links.insert_one(new_url)
 
     return new_url 
