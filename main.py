@@ -23,7 +23,7 @@ fake_users_db = {
         "username": "johndoe",
         "full_name": "John Doe",
         "email": "johndoe@example.com",
-        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
+        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW", # sin hash = 'secret'
         "disabled": False,
     }
 }
@@ -147,7 +147,7 @@ async def read_items(token: str = Depends(oauth2_scheme)):
 
 
 @app.get("/")
-async def get_all(token: str = Depends(oauth2_scheme)):
+async def get_all(token: str = Depends(oauth2_scheme)): 
     return links_dict
 
 
@@ -155,8 +155,8 @@ async def get_all(token: str = Depends(oauth2_scheme)):
 async def redirect(url_shorted:str):
     url_to_redirect = links_dict[url_shorted]
     if url_to_redirect is not None:
-        return {'url_to_redirect':url_to_redirect}
-        #return  RedirectResponse(url= url_to_redirect)
+        #return {'url_to_redirect':url_to_redirect}
+        return  RedirectResponse(url= url_to_redirect)
     else:
         raise HTTPException(status_code=404,detail='The link does not exist, could not redirect.')
 
@@ -165,7 +165,11 @@ async def redirect(url_shorted:str):
 async def func(url:str):
     timestamp = datetime.now().replace(tzinfo=timezone.utc).timestamp()
 
-    new_url={create_short_link(url,timestamp) : ' http://' + url } # añadir http://
+    url_shorted = create_short_link(url,timestamp)
+    url = ' http://' + url
+    new_url={url_shorted : url} # añadir http://
+
+    links_dict[url_shorted] = url
 
     links.insert_one(new_url)
 
