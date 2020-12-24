@@ -10,7 +10,7 @@ from datetime import datetime, timezone,timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from model import db, get_dict_links
+from model import db, User, UserInDB
 
 SECRET_KEY ='9406c796ef64db9dd08dfb7a681792b7435104293118360b09e6c8d09dd8186a'
 ALGORITHM = "HS256"
@@ -37,21 +37,9 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
 
-
-class User(BaseModel):
-    username: str
-    email: Optional[str] = None
-    full_name: Optional[str] = None
-    disabled: Optional[bool] = None
-
-
-class UserInDB(User):
-    hashed_password: str
-
 app = FastAPI()
 
-#re = redis.Redis(host='127.0.0.1',port= 6379 ) 
-urls = db.enlaces # colecion en mongodb que tiene los key-values de los links
+urls = db.enlaces # coleccion en mongodb que tiene los key-values de los links
 
 # links_dict = get_dict_links(db) # diccionario con key-->url hasheada value-->la url
 
@@ -66,12 +54,6 @@ def verify_password(plain_password, hashed_password):
 
 def get_password_hash(password):
     return pwd_context.hash(password)
-
-
-def fake_decode_token(token):
-    return User(
-        username=token + "fakedecoded", email="john@example.com", full_name="John Doe"
-    )
 
 
 def authenticate_user(fake_db, username: str, password: str):
@@ -146,12 +128,14 @@ async def read_items(token: str = Depends(oauth2_scheme)):
 
 @app.get("/")
 async def get_all(token: str = Depends(oauth2_scheme)): 
-    salida = list(urls.find())
-    # del salida['_id']
+    cursor = urls.find()
+    salida={}
+    for row in cursor:
+        salida[row['url_shorted']] = row['url']
     return salida
 
 
-@app.get('/{url_sorted}')
+@app.get('/{url_sorted}') 
 async def redirect(url_shorted:str):
     url_to_redirect = urls.find_one({'url_shorted':url_shorted})
     if url_to_redirect is not None:
@@ -168,7 +152,7 @@ async def func(url:str):
 
     url_shorted = create_short_link(url,timestamp)
     url = ' http://' + url
-    new_url={'url_shorted' : url_shorted} # añadir http://
+    new_url={'url_shorted' : url_shorted} 
 
     new_url['url'] = url
 
