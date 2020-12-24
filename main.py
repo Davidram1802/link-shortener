@@ -12,8 +12,6 @@ from passlib.context import CryptContext
 
 from model import db, get_dict_links
 
-#import redis
-
 SECRET_KEY ='9406c796ef64db9dd08dfb7a681792b7435104293118360b09e6c8d09dd8186a'
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -53,9 +51,9 @@ class UserInDB(User):
 app = FastAPI()
 
 #re = redis.Redis(host='127.0.0.1',port= 6379 ) 
-links = db.enlaces # colecion en mongodb que tiene los key-values de los links
+urls = db.enlaces # colecion en mongodb que tiene los key-values de los links
 
-links_dict = get_dict_links(db) # diccionario con key-->url hasheada value-->la url
+# links_dict = get_dict_links(db) # diccionario con key-->url hasheada value-->la url
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -148,15 +146,18 @@ async def read_items(token: str = Depends(oauth2_scheme)):
 
 @app.get("/")
 async def get_all(token: str = Depends(oauth2_scheme)): 
-    return links_dict
+    salida = list(urls.find())
+    # del salida['_id']
+    return salida
 
 
 @app.get('/{url_sorted}')
 async def redirect(url_shorted:str):
-    url_to_redirect = links_dict[url_shorted]
+    url_to_redirect = urls.find_one({'url_shorted':url_shorted})
     if url_to_redirect is not None:
-        #return {'url_to_redirect':url_to_redirect}
-        return  RedirectResponse(url= url_to_redirect)
+        del url_to_redirect['_id']
+        return {'url_to_redirect':url_to_redirect}
+        #return  RedirectResponse(url= url_to_redirect['url'])
     else:
         raise HTTPException(status_code=404,detail='The link does not exist, could not redirect.')
 
@@ -167,10 +168,10 @@ async def func(url:str):
 
     url_shorted = create_short_link(url,timestamp)
     url = ' http://' + url
-    new_url={url_shorted : url} # añadir http://
+    new_url={'url_shorted' : url_shorted} # añadir http://
 
-    links_dict[url_shorted] = url
+    new_url['url'] = url
 
-    links.insert_one(new_url)
+    urls.insert_one(new_url)
 
     return new_url 

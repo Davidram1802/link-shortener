@@ -1,19 +1,20 @@
-import json
 from pymongo import MongoClient
-from bson.json_util import dumps
 
 client = MongoClient('mongodb://127.0.0.1:3306')
 db = client['links']
 
 db_links=db.enlaces
-example = {
-    'vids':'https://youtube.com'
+# example = {
+#     'url_shorted':'vids',
+#     'url':'https://youtube.com'
     
-}
-example2 = {
-    'code':'https://github.com'
-    
-}
+# }
+# example2 = {
+#     'url_shorted' : 'code',
+#     'url':'https://github.com'
+# }
+
+print(db.enlaces.find_one({'url_shorted':'code'}))
 
 def get_dict_links(db):
     cursor = db.enlaces.find({})
