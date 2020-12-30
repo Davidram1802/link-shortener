@@ -16,7 +16,7 @@ SECRET_KEY ='9406c796ef64db9dd08dfb7a681792b7435104293118360b09e6c8d09dd8186a'
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-fake_users_db = {
+""" fake_users_db = {
     "johndoe": {
         "username": "johndoe",
         "full_name": "John Doe",
@@ -24,7 +24,7 @@ fake_users_db = {
         "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW", # sin hash = 'secret'
         "disabled": False,
     }
-}
+} """
 class Link(BaseModel):
     key: str
     link: str
@@ -41,6 +41,8 @@ app = FastAPI()
 
 urls = db.enlaces # coleccion en mongodb que tiene los key-values de los links
 
+users = db.users
+
 # links_dict = get_dict_links(db) # diccionario con key-->url hasheada value-->la url
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -56,8 +58,8 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def authenticate_user(fake_db, username: str, password: str):
-    user = get_user(fake_db, username)
+def authenticate_user(users_db, username: str, password: str):
+    user = get_user(users_db, username)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -89,20 +91,22 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = get_user(fake_users_db, username=token_data.username)
+    user = get_user(users, username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
 
 def get_user(db, username: str):
-    if username in db:
-        user_dict = db[username]
+    user = db.find_one({username + '.username': username})
+    if user:
+        user_dict = user[username]
+        print(user,user_dict)
         return UserInDB(**user_dict)
 
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+    user = authenticate_user(users, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

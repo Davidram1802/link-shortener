@@ -19,32 +19,38 @@ db = client['links']
 db_links=db.enlaces
 db_users = db.users
 
+example = {
+    'url_shorted':'vids',
+    'url':'https://youtube.com'
+    
+}
+example2 = {
+    'url_shorted' : 'code',
+    'url':'https://github.com'
+}
+
 user1 ={
     "johndoe": {
         "username": "johndoe",
         "email": "johndoe@example.com",
         "full_name": "John Doe",
         "disabled": False,
-        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW", # sin hash = 'secret'
-        "urls":[]
+        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
+        "urls":[example,example2],
     }
 }
-user_in_db = User(**user1['johndoe'])
-print(user_in_db)
-# db_users.insert_one(dict(user_in_db))
+ # hashed_password sin hash = 'secret'
+user_in_db = UserInDB(**user1['johndoe'])
+# print(user_in_db)
+#db_users.insert_one({user_in_db.username:dict(user_in_db)})
 
-#db_users.insert_one(user1)
-# example = {
-#     'url_shorted':'vids',
-#     'url':'https://youtube.com'
-    
-# }
-# example2 = {
-#     'url_shorted' : 'code',
-#     'url':'https://github.com'
-# }
+# db_users.insert_one(user1)
 
-print(db.enlaces.find_one({'url_shorted':'code'}))
+john = db_users.find_one( {user_in_db.username + '.username' :user_in_db.username})
+
+#print(john)
+
+#print(db.enlaces.find_one({'url_shorted':'code'}))
 
 def get_dict_links(db):
     cursor = db.enlaces.find({})
