@@ -163,3 +163,24 @@ async def func(url:str):
     urls.insert_one(new_url)
 
     return new_url 
+
+@app.post("/user/addurl/{url}") 
+async def add_url_current_user(url,token: str = Depends(oauth2_scheme)):
+    user = await get_current_user(token=token)
+    user_urls = user.urls
+    timestamp = datetime.now().replace(tzinfo=timezone.utc).timestamp()
+    nueva_url = {'url_shorted': create_short_link(url,timestamp), 'url':url}
+    users.update_one({user.username+'.urls': user_urls},{"$set":{user.username+'.urls': user_urls + [nueva_url]}})
+    return nueva_url
+
+@app.get('/user/addurl/{url_shorted}')
+async def get_url_current_user(url_shorted,token: str = Depends(oauth2_scheme)):
+    user = await get_current_user(token=token)
+    url = None
+    for url_dict in user.urls:
+        if url_dict['url_shorted'] == url_shorted:
+            url = url_dict['url']
+    if url:
+        return {'url':url}
+    else: 
+        raise HTTPException(status_code=404,detail='The link does not exist, could not redirect.')
