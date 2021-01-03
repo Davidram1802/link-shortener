@@ -164,6 +164,22 @@ async def func(url:str):
 
     return new_url 
 
+@app.post('/new_user')
+async def add_new_user(username: str, password: str,email: Optional[str] = None,
+    full_name: Optional[str] = None, disabled: Optional[bool] = None):
+    user_json = {username:{
+        "username": username,
+        "email": email,
+        "full_name": full_name,
+        "disabled": disabled,
+        "hashed_password":pwd_context.hash(password),
+        "urls": []
+    }}
+    user = UserInDB(**user_json[username])
+    users.insert_one({user.username : dict(user)})
+    del user_json[username]['hashed_password']
+    return user_json
+
 @app.post("/user/addurl/{url}") 
 async def add_url_current_user(url,token: str = Depends(oauth2_scheme)):
     user = await get_current_user(token=token)
