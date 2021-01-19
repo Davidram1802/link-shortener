@@ -100,7 +100,6 @@ def get_user(db, username: str):
     user = db.find_one({username + '.username': username})
     if user:
         user_dict = user[username]
-        print(user,user_dict)
         return UserInDB(**user_dict)
 
 
@@ -139,13 +138,13 @@ async def get_all(token: str = Depends(oauth2_scheme)):
     return salida
 
 
-@app.get('/{url_sorted}') 
+@app.get('/{url_shorted}') 
 async def redirect(url_shorted:str):
     url_to_redirect = urls.find_one({'url_shorted':url_shorted})
     if url_to_redirect is not None:
         del url_to_redirect['_id']
-        return {'url_to_redirect':url_to_redirect}
-        #return  RedirectResponse(url= url_to_redirect['url'])
+        #return {'url_to_redirect':url_to_redirect}
+        return  RedirectResponse(url= url_to_redirect['url'])
     else:
         raise HTTPException(status_code=404,detail='The link does not exist, could not redirect.')
 
@@ -180,6 +179,7 @@ async def add_new_user(username: str, password: str,email: Optional[str] = None,
     del user_json[username]['hashed_password']
     return user_json
 
+
 @app.post("/user/addurl/{url}") 
 async def add_url_current_user(url,token: str = Depends(oauth2_scheme)):
     user = await get_current_user(token=token)
@@ -189,6 +189,7 @@ async def add_url_current_user(url,token: str = Depends(oauth2_scheme)):
     users.update_one({user.username+'.urls': user_urls},{"$set":{user.username+'.urls': user_urls + [nueva_url]}})
     return nueva_url
 
+
 @app.get('/user/addurl/{url_shorted}')
 async def get_url_current_user(url_shorted,token: str = Depends(oauth2_scheme)):
     user = await get_current_user(token=token)
@@ -197,6 +198,13 @@ async def get_url_current_user(url_shorted,token: str = Depends(oauth2_scheme)):
         if url_dict['url_shorted'] == url_shorted:
             url = url_dict['url']
     if url:
+        return  RedirectResponse(url=f'http://{url}')
         return {'url':url}
     else: 
         raise HTTPException(status_code=404,detail='The link does not exist, could not redirect.')
+
+
+@app.get('/user/ulrls')
+async def get_urls_current_user(token: str = Depends(oauth2_scheme)):
+    user = await get_current_user(token)
+    return user.urls
